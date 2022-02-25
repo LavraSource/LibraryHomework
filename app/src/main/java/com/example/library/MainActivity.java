@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
@@ -14,19 +15,24 @@ import android.widget.SimpleAdapter;
 import android.widget.Toast;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 
 public class MainActivity extends AppCompatActivity {
+
     ListView bookList;
-
     Button add,del;
-
     EditText bookName,bookAuthor, bookYear;
+    SharedPreferences.Editor editor;
+    SharedPreferences preferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        preferences=getSharedPreferences("Books", MODE_PRIVATE);
+        editor=preferences.edit();
 
         bookList=findViewById(R.id.book_list);
 
@@ -37,23 +43,19 @@ public class MainActivity extends AppCompatActivity {
         bookAuthor=findViewById(R.id.author);
         bookYear =findViewById(R.id.year);
 
-
-
-
-        //TODO подготовка данных
         LinkedList<Book> bookLinkedList=new LinkedList<>();
-        bookLinkedList.add(new Book("Основание","Азимов",2015,R.drawable.osnovanie));
-        bookLinkedList.add(new Book("Преступление и наказание","Достоевский",1972,R.drawable.prestuplenie));
-        bookLinkedList.add(new Book("Шинель","Гоголь",1998,R.drawable.shinel));
-        bookLinkedList.add(new Book("Гарри Поттер и Философский каамень","Дж Роулинг",2008,R.drawable.book));
-        bookLinkedList.add(new Book("Колобок","народ",2021,R.drawable.book));
+        String str = preferences.getString("BOOKS", "");
+        String[] split = str.split("/");
 
+        if(split.length>2){
+            for (int i = 0; i < split.length; i+=4) {
+                bookLinkedList.add(new Book(split[i],split[i+1], Integer.parseInt(split[i+2]), Integer.parseInt(split[i+3])));
+            }
+        }
 
-        //TODO сщздать массив с ключами и идентификаторами
         String[]keyArray={"title","author","year","cover"};
         int [] idArray={R.id.book_title,R.id.author,R.id.year,R.id.image};
 
-        //TODO сщздание списка map для адаптера
         LinkedList<HashMap<String,Object>> listForAdapter=new LinkedList<>();
         for (int i = 0; i < bookLinkedList.size(); i++) {
             HashMap<String,Object>bookMap=new HashMap<>();
@@ -64,11 +66,7 @@ public class MainActivity extends AppCompatActivity {
             listForAdapter.add(bookMap);
 
         }
-        //TODO создпние адаптера
 
-        //ArrayAdapter<Book>adapter=new ArrayAdapter<>(this,R.layout.list_item,bookLinkedList);
-        //SimpleAdapter adapter1;
-        //SimpleCursorAdapter adapter2;
         SimpleAdapter simpleAdapter=new SimpleAdapter(this,listForAdapter,R.layout.list_item,keyArray,idArray);
 
         bookList.setAdapter(simpleAdapter);
@@ -102,7 +100,9 @@ public class MainActivity extends AppCompatActivity {
 
                 }
                 if (year1!=0) {
-                    bookLinkedList.add(new Book(name1,author1,year1,R.drawable.book));
+                    Book book =  new Book(name1,author1,year1,R.drawable.book);
+                    editor.putString("BOOKS", preferences.getString("BOOKS","")+book.toString());
+                    bookLinkedList.add(book);
                     HashMap<String, Object> bookMap = new HashMap<>();
                     bookMap.put(keyArray[0], name1);
                     bookMap.put(keyArray[1], author1);
@@ -111,10 +111,7 @@ public class MainActivity extends AppCompatActivity {
                     listForAdapter.add(bookMap);
                     simpleAdapter.notifyDataSetChanged();
                 }
-
-
-
-
+                editor.commit();
             }
         });
         del.setOnClickListener(new View.OnClickListener() {
@@ -128,8 +125,13 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     }
                 }
+                editor.putString("BOOKS", "");
+                Iterator<Book> bookIterator= bookLinkedList.iterator();
+                while(bookIterator.hasNext()){
+                    editor.putString("BOOKS", preferences.getString("BOOKS","")+bookIterator.next().toString());
+                }
                 simpleAdapter.notifyDataSetChanged();
-
+                editor.commit();
             }
         });
 
