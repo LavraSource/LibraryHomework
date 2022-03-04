@@ -4,7 +4,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
+import android.content.ContentValues;
 import android.content.SharedPreferences;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
@@ -25,17 +27,19 @@ public class MainActivity extends AppCompatActivity {
     EditText bookName,bookAuthor, bookYear;
     SharedPreferences.Editor editor;
     SharedPreferences preferences;
+    SQLiteDatabase database;
+    OpenHelper openHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        openHelper=new OpenHelper(getApplicationContext());
         preferences=getSharedPreferences("Books", MODE_PRIVATE);
         editor=preferences.edit();
 
         bookList=findViewById(R.id.book_list);
-
+        database=openHelper.getWritableDatabase();
         add=findViewById(R.id.add);
         del=findViewById(R.id.del);
 
@@ -64,6 +68,12 @@ public class MainActivity extends AppCompatActivity {
             bookMap.put(keyArray[2],bookLinkedList.get(i).year);
             bookMap.put(keyArray[3],bookLinkedList.get(i).coverId);
             listForAdapter.add(bookMap);
+
+            ContentValues values=new ContentValues();
+            values.put(OpenHelper.COLUMN_AUTHOR,bookLinkedList.get(i).author);
+            values.put(OpenHelper.COLUMN_TITLE,bookLinkedList.get(i).title);
+            values.put(OpenHelper.COLUMN_YEAR, bookLinkedList.get(i).year);
+            database.insert(OpenHelper.TABLE_NAME, null, values);
 
         }
 
@@ -108,6 +118,11 @@ public class MainActivity extends AppCompatActivity {
                     bookMap.put(keyArray[1], author1);
                     bookMap.put(keyArray[2], year1);
                     bookMap.put(keyArray[3], R.drawable.book);
+                    ContentValues values=new ContentValues();
+                    values.put(OpenHelper.COLUMN_AUTHOR,author1);
+                    values.put(OpenHelper.COLUMN_TITLE,name1);
+                    values.put(OpenHelper.COLUMN_YEAR, year1);
+                    database.insert(OpenHelper.TABLE_NAME, null, values);
                     listForAdapter.add(bookMap);
                     simpleAdapter.notifyDataSetChanged();
                 }
@@ -136,5 +151,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
         simpleAdapter.notifyDataSetChanged();
+    }
+    @Override
+    protected void onStop() {
+        super.onStop();
+        database.close();
     }
 }
